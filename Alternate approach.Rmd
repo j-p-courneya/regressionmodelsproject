@@ -26,7 +26,7 @@ This analysis suggest I have to include CYL, DISP and WT within a linear model a
 ##2nd Step: Model's specification
 I considered the following model (I provide the details and numbers at the end of the document) as I need to determine transmission and significant varibles effects over MPG:
 ```{r}
-lm <- lm(mpg ~ cyl + wt + am, data = mtcars)
+lm <- lm(mpg ~ cyl + wt + am, data = mtcars2)
 summary(lm)
 ```
 AM is not significant and has a large p-value, but it is not possible to reject the hypothesis that the coefficient of AM is 0.
