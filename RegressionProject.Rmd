@@ -17,27 +17,18 @@ In this report will address the question : "Is automatic or manual transmission 
 
 ## Cleaning data
 
-The first step of our analysis is simply to load and take a look at the data.
+The first step of our analysis is simply to make a copy of the data and take a look.
 
 ```{r}
-data(mtcars)
-str(mtcars)
+mtcars2 <- mtcars
+str(mtcars2)
 ```
 
-Now we coerce the "cyl", "vs", "gear", "carb" and "am" variables into factor variables.
+Next the Auto and Manual factors for "am" variable were coerced as factors and levels were created "Auto"" and "Manual".
 
 ```{r}
-mtcars$cyl <- factor(mtcars$cyl)
-mtcars$vs <- factor(mtcars$vs)
-mtcars$gear <- factor(mtcars$gear)
-mtcars$carb <- factor(mtcars$carb)
-mtcars$am <- factor(mtcars$am)
-```
-
-For a better readability, we rename the levels of the "am" variable into "Auto" and "Manual".
-
-```{r}
-levels(mtcars$am) <- c("Auto", "Manual")
+mtcars2$am_fac1 <- factor(mtcars2$am, labels = c("auto", "manual"))
+mtcars2$am_fac2 <- factor(mtcars2$am)
 ```
 
 ## Graphics
@@ -48,11 +39,11 @@ We then plot the relationships between all the variables of the dataset (see Fig
 
 ## Inference
 
-We may also run some tests to compare the mpg means between automatic and manual transmissions.
+To compare the mpg means between automatic and manual transmissions.
 
 ### T-test
 
-Assuming the a normal distribution of mtcars2 a t test will be used to see if the mean MPG of auto VS manual transmission is significantly different .
+Assuming the a normal distribution of mtcars2 a ttest will be used to see if the mean MPG of auto VS manual transmission is significantly different .
 
 ```{r, results = 'hide'}
 t.test(mpg ~ am, data = mtcars2)
@@ -72,12 +63,7 @@ n <- nrow(mtcars)
 model <- step(model.all, direction = "backward", k = log(n))
 ```
 
-```{r}
-summary(model)
-model$anova
-```
 
-The BIC algorithm tells us to consider "wt" and "qsec" as confounding variables. The individual p-values allows us to reject the hypothesis that the coefficients of "wt", "qsec" and "am" are null. The adjusted r-squared is `r summary(model)$adj.r.squared`, so we may conclude that more than `r round(summary(model)$adj.r.squared * 100)`% of the variation is explained by the model.
 
 ##ANOVA
 ANOVA explains the sources of variance so it can help to determine which variables have significant effects (statistically speaking). According to wikipedia: "In its simplest form, ANOVA provides a statistical test of whether or not the means of several groups are equal".
