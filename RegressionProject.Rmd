@@ -33,9 +33,7 @@ mtcars2$am_fac2 <- factor(mtcars2$am)
 
 ## Graphics
 
-We begin by plotting boxplots of the variable "mpg" when "am" is "Auto" or "Manual" (see Figure 1 in the appendix). This plot hints at an increase in mpg when gearing was manual but this data may have other variables which may play a bigger role in determination of mpg.
-
-We then plot the relationships between all the variables of the dataset (see Figure 2 in the appendix). We may note that variables like "wt", "cyl", "disp" and "hp" seem highly correlated together.
+We begin by plotting boxplots of the variable "mpg" when "am" is "Auto" or "Manual" (see Figure 1 in the appendix). This plot hints at an increase in mpg with manual transmission but this data may have other variables which may play a bigger role in determination of mpg.
 
 ## Inference
 
@@ -46,7 +44,7 @@ To compare the mpg means between automatic and manual transmissions.
 Assuming the a normal distribution of mtcars2 a ttest will be used to see if the mean MPG of auto VS manual transmission is significantly different .
 
 ```{r, results = 'hide'}
-t.test(mpg ~ am, data = mtcars2)
+t.test(mpg ~ am_fac1, data = mtcars2)
 ```
 
 The p-value of `r t.test(mpg ~ am, data = mtcars2)$p.value` allows us to reject the null hypothesis that there is no difference in the mean MPG of auto VS manual transmission.
@@ -55,16 +53,48 @@ The p-value of `r t.test(mpg ~ am, data = mtcars2)$p.value` allows us to reject 
 
 ## Regression analysis
 
-First we need to select a model, we proceed by using the Bayesian Information Criteria (BIC) in a stepwise algorithm. This algorithm does not evaluate the BIC for all possible models but uses a search method that compares models sequentially. Thus it bears some comparison to the classical stepwise method but with the advantage that no dubious p-values are used.
+ We then plot the relationships between all the variables of the dataset (see Figure 2 in the appendix). We may note that variables like "wt", "cyl", "disp" and "hp" seem highly correlated together.
+
 
 ```{r results = 'hide'}
 model.all <- lm(mpg ~ ., data = mtcars2)
-n <- nrow(mtcars)
-model <- step(model.all, direction = "backward", k = log(n))
 ```
 
+```{r}
+a0 <- lm(mpg~am_fac1, data = mtcars2)
+summary(a0)$coef
+```
 
+```{r}
+plot(a0, which = 1)
+```
 
+```{r}
+a1 <- lm(mpg~am_fac1 + hp, data = mtcars2)
+summary(a1)$coef
+```
+
+```{r}
+a2 <- lm(mpg~am_fac1 + hp + cyl, data = mtcars2)
+summary(a2)$coef
+```
+
+```{r}
+plot(a2, which = 1)
+```
+
+```{r}
+a3 <- lm(mpg~am_fac1 + hp + wt, data = mtcars2)
+summary(a3)$coef
+```
+
+```{r}
+anova(a0, a1, a2, test = "Chisq")
+```
+
+```{r}
+anova(a0, a1, a3, test = "Chisq")
+```
 ##ANOVA
 ANOVA explains the sources of variance so it can help to determine which variables have significant effects (statistically speaking). According to wikipedia: "In its simplest form, ANOVA provides a statistical test of whether or not the means of several groups are equal".
 ```{r}
@@ -82,7 +112,12 @@ We may notice that when we compare the model with only "am" as independant varia
 The regression suggests that, "wt" and "qsec" variables remaining constant, manual transmitted cars can drive `r summary(model)$coef[4]` more miles per gallon on average than automatic transmitted cars, and the results are statistically significant.
 
 ```{r}
-confint(model)
+confint(a0)
+as.numeric(confint(a0)[2, ][1])
+as.numeric(confint(a0)[2, ][2])
+confint(a3)
+as.numeric(confint(a3)[2, ][1])
+as.numeric(confint(a3)[2, ][2])
 ```
 
 More accurately, we are 95% confident that the difference in miles per gallon between manual and automatic transmitted cars lies somewhere in the interval [`r as.numeric(confint(model)[4, ][1])`, `r as.numeric(confint(model)[4, ][2])`].
@@ -156,11 +191,11 @@ pairs(mtcars2, upper.panel = panel.smooth, lower.panel = panel.cor, main = "Pair
 
 ```{r fig.width = 10, fig.height = 10}
 par(mfrow = c(2, 2))
-plot(fitted(model), residuals(model), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted")
+plot(fitted(model.all), residuals(model.all), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted")
 abline(h = 0, col = "red")
-qqnorm(residuals(model))
-qqline(residuals(model), col = "red")
-plot(fitted(model), sqrt(abs(rstandard(model))), xlab = "Fitted values", ylab = "Square Root of Standardized Residuals", main = "Scale-Location")
+qqnorm(residuals(model.all))
+qqline(residuals(model.all), col = "red")
+plot(fitted(model.all), sqrt(abs(rstandard(model.all))), xlab = "Fitted values", ylab = "Square Root of Standardized Residuals", main = "Scale-Location")
 ```
 
 ```{r}
