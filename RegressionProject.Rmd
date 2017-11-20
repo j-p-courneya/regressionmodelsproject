@@ -1,7 +1,7 @@
 ---
 title: "Regression Assignment"
 author: "Jean-Paul Courneya"
-date: "10/24/2017"
+date: "11/20/2017"
 output: pdf_document
 ---
 
@@ -13,20 +13,20 @@ The classic question confronted. Is an Automatic or Manual transmission better f
     
 ## Executive summary
     
-In this report will address the question : "Is automatic or manual transmission better for mpg ?". To answer this question we used a dataset from the 1974 Motor Trend US magazine, and ran some statistical tests and a regression analysis. On one hand the statistical tests show (without controlling for other car design features) a difference in mean of about 7 miles more for the manual transmitted cars. On the other hand, the regression analysis indicate that by taking into account other variables like weight and 1/4 mile time, manual transmitted cars are only 2.9 miles better than automatic transmitted cars and also that this result is less significant than to consider weight and 1/4 mile time together.
+In this report will address the question : "Is automatic or manual transmission better for mpg ?". To answer this question we used a dataset from the 1974 Motor Trend US magazine, and ran some statistical tests and a regression analysis. On one hand the statistical tests show (without controlling for other car design features) a difference in mean of about 7 MPG more for the cars with a manual transmission. On the other hand, the regression analysis indicates that by taking into account other variables like horsepower and weight, the story can become different. In this case manual transmission cars are only 4.9 miles better MPG than cars with an automatic transmission. Turns out that the difference in MPG is heavily contingent on other regressors. We see that if we are relying on auto or manual transmission as the defining variable for best MPG we may want to consider whats "under the hood" also.
 
 ## Cleaning data
 
 The first step of our analysis is simply to make a copy of the data and take a look.
 
-```{r}
+```{r results = 'hide'}
 mtcars2 <- mtcars
 str(mtcars2)
 ```
 
 Next the Auto and Manual factors for "am" variable were coerced as factors and levels were created "Auto"" and "Manual".
 
-```{r}
+```{r results = 'hide'}
 mtcars2$am_fac1 <- factor(mtcars2$am, labels = c("auto", "manual"))
 mtcars2$am_fac2 <- factor(mtcars2$am)
 ```
@@ -35,144 +35,85 @@ mtcars2$am_fac2 <- factor(mtcars2$am)
 
 We begin by plotting boxplots of the variable "mpg" when "am" is "Auto" or "Manual" (see Figure 1 in the appendix). This plot hints at an increase in mpg with manual transmission but this data may have other variables which may play a bigger role in determination of mpg.
 
-## Inference
+## T-test
 
-To compare the mpg means between automatic and manual transmissions.
-
-### T-test
-
-Assuming the a normal distribution of mtcars2 a ttest will be used to see if the mean MPG of auto VS manual transmission is significantly different .
+Assuming the a normal distribution of mtcars2 a t-test will be used to see if the mean MPG of auto VS manual transmission is significantly different .
 
 ```{r, results = 'hide'}
 t.test(mpg ~ am_fac1, data = mtcars2)
 ```
 
-The p-value of `r t.test(mpg ~ am, data = mtcars2)$p.value` allows us to reject the null hypothesis that there is no difference in the mean MPG of auto VS manual transmission.
-
-
+The p-value of `r t.test(mpg ~ am, data = mtcars2)$p.value` allows us to reject the null hypothesis that there is NO difference in the mean MPG of auto VS manual transmission.
 
 ## Regression analysis
 
- We then plot the relationships between all the variables of the dataset (see Figure 2 in the appendix). We may note that variables like "wt", "cyl", "disp" and "hp" seem highly correlated together.
-
+Getting a birds eye view, we plotted the relationships between all the variables of the dataset (see Figure 2 in the appendix). We may note that variables like "wt", "cyl", "disp" and "hp" seem highly correlated together.
 
 ```{r results = 'hide'}
 model.all <- lm(mpg ~ ., data = mtcars2)
 ```
 
-```{r}
+This model shows the relationship between transmission and MPG alone and matches the results of the t-test
+```{r results = 'hide'}
 a0 <- lm(mpg~am_fac1, data = mtcars2)
 summary(a0)$coef
 ```
 
-```{r}
-plot(a0, which = 1)
-```
+As we can see the Intercept coincides with the mean for automatic transmission shown in the table (up to rounding error), and the coefficient am_fac1manual is the difference between the means of each transmission type. The very low p-values suggest that the coefficients are significantly different from zero.
 
-```{r}
+More accurately, we are 95% confident that the difference in miles per gallon between manual and automatic transmission cars lies somewhere in the interval [`r as.numeric(confint(a0)[2,][1])`, `r as.numeric(confint(a0)[2, ][2])`].
+
+Horsepower is a measure of work. In terms of cars it means how much work the engine can do in a time inerval and get results. So it stands to reason that more HP = more work. So cars with a high HP can do more work over a similar interval of time as those with lower HP. This is definitely something that should play an effect on MPG
+
+```{r results = 'hide'}
 a1 <- lm(mpg~am_fac1 + hp, data = mtcars2)
 summary(a1)$coef
 ```
 
-```{r}
-a2 <- lm(mpg~am_fac1 + hp + cyl, data = mtcars2)
-summary(a2)$coef
-```
+Even though the coefficient of hp is small, it's statistically significant, which means that there is a small but definitely non-zero effect of horsepower on miles per gallon. This coefficient is the variation of mpg due to the increase of one unit of hp keeping auto fixed. Also of note, the coefficient of am_fac1manual is positive, which reinforces the conclusion that manual transmissions give more mpg. 
 
-```{r}
-plot(a2, which = 1)
-```
+Now, we are going to add weight wt:
 
-```{r}
+```{r results = 'hide'}
 a3 <- lm(mpg~am_fac1 + hp + wt, data = mtcars2)
 summary(a3)$coef
 ```
 
-```{r}
-anova(a0, a1, a2, test = "Chisq")
-```
+Again, the positive coefficient of automanual says that a manual transmission gives more miles per gallon. The coefficient of wt is the change in mpg per unit of weight keeping the other variables constant.
 
-```{r}
+Let's see whether the addition of variables to our model gives us more detail using ANOVA.
+
+```{r results = 'hide'}
 anova(a0, a1, a3, test = "Chisq")
 ```
-##ANOVA
-ANOVA explains the sources of variance so it can help to determine which variables have significant effects (statistically speaking). According to wikipedia: "In its simplest form, ANOVA provides a statistical test of whether or not the means of several groups are equal".
-```{r}
-analysis <- aov(mpg ~ ., data = mtcars2) #I run ANOVA
-summary(analysis) #this returns a summary containing relevant statistics
-```
 
-
-```{r}
-anova(lm(mpg ~ am, data = mtcars2), lm(mpg ~ am + qsec, data = mtcars2), lm(mpg ~ am + wt + qsec, data = mtcars2))
-```
-
-We may notice that when we compare the model with only "am" as independant variable and our chosen model, we reject the null hypothesis that the variables "wt" and "qsec" don't contribute to the accuracy of the model.
-
-The regression suggests that, "wt" and "qsec" variables remaining constant, manual transmitted cars can drive `r summary(model)$coef[4]` more miles per gallon on average than automatic transmitted cars, and the results are statistically significant.
-
-```{r}
-confint(a0)
-as.numeric(confint(a0)[2, ][1])
-as.numeric(confint(a0)[2, ][2])
-confint(a3)
-as.numeric(confint(a3)[2, ][1])
-as.numeric(confint(a3)[2, ][2])
-```
-
-More accurately, we are 95% confident that the difference in miles per gallon between manual and automatic transmitted cars lies somewhere in the interval [`r as.numeric(confint(model)[4, ][1])`, `r as.numeric(confint(model)[4, ][2])`].
-
-## Residuals and diagnostics
+The low p-values show that the two models built on top of a0 are significantly different from a0 and, hence, they make a good selection.
 
 ### Residual analysis
 
-We begin by studying the residual plots (see Figure 3 in the appendix). These plots allow us to verify some assumptions made before. We have to point that due to the small sample size 
+The residual plots allow us to check our data (Figure 3 in the appendix). These plots allow us to verify some assumptions made before. 
 
-1. The Residuals vs Fitted plot seem to verify the independance assumption as the points are randomly scattered on the plot (a Durbin-Watson test further confirms this assumption at the 0.05 level).
-2. The Normal Q-Q plot seem to indicate that the residuals are normally distributed as the points hug the line closely (a Shapiro-Wilk test further confirms this assumption at the 0.05 level).
-3. The Scale-Location plot seem to verify the constant variance assumption as the points fall in a constant band (a Breusch-Pagan test further confirms this assumption at the 0.05 level).
+1. The Residuals vs Fitted plot seem to verify the independance assumption as the points are randomly scattered on the plot 
+2. The Normal Q-Q plot seem to indicate that the residuals are normally distributed as the points hug the line closely 
 
-### Leverages
+3. The Scale-Location plot seem to verify the constant variance assumption as the points fall in a constant band.
 
-We begin by computing the leverages for the "mtcars" dataset.
 
-```{r}
-leverage <- hatvalues(model)
-```
+##Conclusions
 
-Are any of the observations in the dataset outliers ? We find the outliers by selecting the observations with a hatvalue > 0.5.
-
-```{r}
-leverage[which(leverage > 0.5)]
-```
-
-### Dfbetas
-
-Next we look at the Dfbetas of the observations.
-
-```{r}
-influential <- dfbetas(model)
-```
-
-Are any of the observations in the dataset influential ? We find the influential observations by selecting the ones with a dfbeta > 1 in magnitude.
-
-```{r}
-influential[which(abs(influential) > 1)]
-```
-
-This influential observation corresponds to the Chrysler Imperial.
+Each one of the three nested models that we used reduced the residual sum of squares with respect to its predecessor, which means that each variable that we chose added more detail to our overall understanding of the variations of mpg. In each one of the models, we saw that a manual transmission gives more miles per gallon, a conclusion drawn from the sign of the coefficient of auto.
 
 ## Appendix
 
 ### Figure 1 : Boxplots of "mpg" vs. "am"
 
-```{r fig.width = 10, fig.height = 10}
-plot(mpg ~ am, data = mtcars, main = "Mpg by transmission type", xlab = "Transmission type", ylab = "Miles per gallon")
+```{r fig.width = 8.5, fig.height = 8.5}
+boxplot(mpg ~ am_fac1, data = mtcars2, main = "MPG by transmission type", xlab = "Transmission type", ylab = "Miles per gallon")
 ```
 
 ### Figure 2 : Pairs graph
 
-```{r fig.width = 8.5, fig.height = 8.5}
+```{r fig.width = 8.5, fig.height = 7.5}
 panel.cor <- function(x, y, digits=2, cex.cor)
 {
   usr <- par("usr"); on.exit(par(usr))
@@ -191,28 +132,10 @@ pairs(mtcars2, upper.panel = panel.smooth, lower.panel = panel.cor, main = "Pair
 
 ```{r fig.width = 10, fig.height = 10}
 par(mfrow = c(2, 2))
-plot(fitted(model.all), residuals(model.all), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted")
+plot(fitted(a3), residuals(a3), xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fitted")
 abline(h = 0, col = "red")
-qqnorm(residuals(model.all))
-qqline(residuals(model.all), col = "red")
-plot(fitted(model.all), sqrt(abs(rstandard(model.all))), xlab = "Fitted values", ylab = "Square Root of Standardized Residuals", main = "Scale-Location")
+qqnorm(residuals(a3))
+qqline(residuals(a3), col = "red")
+plot(fitted(a3), sqrt(abs(rstandard(a3))), xlab = "Fitted values", ylab = "Square Root of Standardized Residuals", main = "Scale-Location")
 ```
 
-```{r}
-library(lmtest)
-bptest(model)
-```
-
-We do not reject the null hypothesis that the variance is the same for all observations at the 0.05 level. There is relatively weak evidence against the assumption of constant variance.
-
-```{r}
-dwtest(model, alternative = "two.sided")
-```
-
-In this case we do not reject the null hypothesis at the 0.05 level; there is very little evidence of nonzero autocorrelation in the residuals.
-
-```{r}
-shapiro.test(residuals(model))
-```
-
-We do not reject the null hypothesis that the residuals are normal at the 0.05 level.
